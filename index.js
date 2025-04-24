@@ -1,22 +1,39 @@
 const express = require('express');
-const app = express();
-const puppeteer = require('puppeteer');
+const { Client } = require('whatsapp-web.js');
+const qrcode = require('qrcode-terminal');
 
-app.get('/', async (req, res) => {
-  const browser = await puppeteer.launch({
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
-    headless: false,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
-  const page = await browser.newPage();
-  await page.goto('https://example.com');
-  await page.waitForSelector('canvas[aria-label="Scan me!"]', { timeout: 0 });
-  console.log('QR Code carregado!');
-  const title = await page.title();
-  await browser.close();
-  res.send(`Título da página: ${title}`);
+const app = express();
+
+// Inicializa o cliente do WhatsApp Web
+const client = new Client();
+
+client.on('qr', (qr) => {
+  // Gera o QR Code para escaneamento
+  qrcode.generate(qr, { small: true });
+  console.log('QR RECEIVED', qr);
 });
 
+client.on('ready', () => {
+  console.log('Bot is ready!');
+});
+
+client.on('message', (message) => {
+  console.log('Received message:', message.body);
+  // Responde a mensagem recebida
+  if (message.body === 'Oi') {
+    message.reply('Olá! Como posso te ajudar?');
+  }
+});
+
+// Inicializa o cliente WhatsApp
+client.initialize();
+
+// Serve o bot via Express
+app.get('/', (req, res) => {
+  res.send('Bot do WhatsApp rodando!');
+});
+
+// Inicia o servidor
 app.listen(3000, () => {
   console.log('Servidor rodando na porta 3000');
 });
